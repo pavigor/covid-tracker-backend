@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    some-label: pod-runner
+  namespace: cicd
+spec:
+  containers:
+    - name: maven
+      image: maven:3-openjdk-11
+      command: ["tail", "-f", "/dev/null"]
+      imagePullPolicy: IfNotPresent
+
+    - name: docker
+      image: docker:19.03.13-dind
+      imagePullPolicy: IfNotPresent
+      command:
+        - dockerd
+      args:
+        - --host=unix:///var/run/docker.sock
+        - --storage-driver=overlay
+        - --insecure-registry
+        - nexus:8086
+      tty: true
+      securityContext:
+        privileged: true
+    - name: jnlp
+      image: pavigor/jnlp-aws-kubectl:2.0
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: aws-creds
+              key: aws_access_key_id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-creds
+              key: aws_secret_access_key
+        - name: DEFAULT_REGION
+          valueFrom:
+            secretKeyRef:
+              name: aws-creds
+              key: region
+
+
