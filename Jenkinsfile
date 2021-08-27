@@ -10,6 +10,7 @@ pipeline {
                 buildTag
             }
             steps {
+                echo "Triggered by tag"
                 sh 'printenv'
             }
         }
