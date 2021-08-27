@@ -1,7 +1,7 @@
 pipeline {
     agent {
         kubernetes {
-            yamlFile 'agent.yaml'
+            yamlFile 'cicd/agent.yaml'
         }
     }
     stages {
@@ -73,16 +73,14 @@ pipeline {
                     container('jnlp') {
                             def branch = env.GIT_BRANCH
                             if (branch.contains("main")) {
-                                sh 'sed -i "s/__NAMESPACE__/app-prod/g" k8s/k8s.yaml'
-                                sh 'sed -i "s/__IMAGE__/backend/g" k8s/k8s.yaml'
+                                sh 'sed -i "s/__NAMESPACE__/app-prod/g" cicd/deployment.yaml'
+                                sh 'sed -i "s/__IMAGE__/backend/g" cicd/deployment.yaml'
                             } else {
-                                sh 'sed -i "s/__NAMESPACE__/app-dev/g" k8s/k8s.yaml'
-                                sh 'sed -i "s/__IMAGE__/backend-dev/g" k8s/k8s.yaml'
+                                sh 'sed -i "s/__NAMESPACE__/app-dev/g" cicd/deployment.yaml'
+                                sh 'sed -i "s/__IMAGE__/backend-dev/g" cicd/deployment.yaml'
                             }
-                            sh 'sed -i "s/__ECR__/${ECR}/g" k8s/k8s.yaml'
-                            sh 'printenv'
-                            sh 'cat k8s/k8s.yaml'
-                            kubernetesDeploy(configs: "k8s/k8s.yaml", kubeconfigId: "k8s")
+                            sh 'sed -i "s/__ECR__/${ECR}/g" cicd/deployment.yaml'
+                            kubernetesDeploy(configs: "cicd/deployment.yaml", kubeconfigId: "k8s")
                     }
                 }
             }
