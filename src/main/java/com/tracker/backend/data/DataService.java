@@ -31,6 +31,7 @@ public class DataService {
      * Get covid data for the current day
      */
     public int updateData() {
+        logger.info("Trying to fetch data for the current day");
         LocalDate to = LocalDate.now().minusDays(1);
         String url = COVID_TRACKER_API + to + "/" + to;
         StringencyData data = restTemplate.getForObject(url, StringencyData.class);
@@ -49,6 +50,7 @@ public class DataService {
                 });
 
             });
+            logger.info("Data updating is end");
             return result[0];
         }
     }
