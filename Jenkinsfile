@@ -16,6 +16,7 @@ pipeline {
                 }
             }
         }
+
 //        stage('Sonar analyse') {
 //            steps {
 //                container('maven') {
@@ -69,6 +70,7 @@ pipeline {
                         } else {
                             repository = "backend-dev"
                         }
+                        env.APP_IMAGE="${repository}:${tag}"
 //                            docker.withRegistry("https://${env.ECR}",'ecr:eu-central-1:JenkinsECR') {
 //                                def image = docker.build("${repository}:${tag}")
 //                                image.push()
@@ -78,9 +80,27 @@ pipeline {
                 }
             }
         }
+        stage('Test feature branch') {
+            when {
+                branch 'f-01'
+            }
+            steps {
+                sh 'printenv'
+            }
+        }
+        stage('Deploy to qa') {
+            when {
+                branch 'qa'
+            }
+            steps {
+                echo 'Deploy to qa'
+            }
+        }
         stage('Deploy to production') {
             when {
-                buildingTag()
+                allOf {
+                    buildingTag() ; branch 'main'
+                }
             }
             steps {
                 echo "Deploy it to prod!"
