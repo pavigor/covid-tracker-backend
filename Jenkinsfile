@@ -55,7 +55,11 @@ pipeline {
                     container('docker') {
                             sh 'printenv'
                             sh 'ls -l ./target'
-                            echo "${TAG_NAME}"
+                            if ("${TAG_NAME}" != null) {
+                                echo "${TAG_NAME}"
+                            } else {
+                                echo "Tag doesn't exists"
+                            }
                         def tag = sh(returnStdout: true, script: "git tag --contains").trim()
                         echo "${tag}"
                             def shaSum = env.GIT_COMMIT
