@@ -48,8 +48,8 @@ pipeline {
                     container('docker') {
                         sh 'printenv'
                         sh 'ls -l ./target'
-                        if ("${TAG_NAME}" != null) {
-                            echo "${TAG_NAME}"
+                        if (env.TAG_NAME) {
+                            echo "${env.TAG_NAME}"
                         } else {
                             echo "Tag doesn't exists"
                         }
@@ -64,7 +64,7 @@ pipeline {
                         def repository = ""
                         if (branch == 'main') {
                             repository = "backend"
-                            if ("${TAG_NAME}" == null) {
+                            if (!env.TAG_NAME) {
                                 echo "Deploy to dev"
                             }
                         } else {
