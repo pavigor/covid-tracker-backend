@@ -4,10 +4,13 @@ pipeline {
             yamlFile 'cicd/agent.yaml'
         }
     }
+    environment {
+        TAG_NAME = sh(returnStdout: true, script: "git tag --contains").trim()
+    }
     stages {
         stage('Trigger by tag') {
             when {
-                buildTag
+                buildingTag()
             }
             steps {
                 echo "Triggered by tag"
@@ -46,36 +49,38 @@ pipeline {
 //               }
 //           }
 //        }
-//        stage('Create image') {
-//            steps {
-//                script {
-//                    container('docker') {
-//                            sh 'printenv'
-//                            sh 'ls -l ./target'
-//                            def shaSum = env.GIT_COMMIT
-//                            def branch = env.GIT_BRANCH
-//                            def shortSum = shaSum.substring(0,7)
-//                            if (branch.contains("/")) {
-//                                branch = branch.split("/")[1]
-//                            }
-//                            def tag = "${branch}-${shortSum}"
-//
-//                            def repository = ""
-//                            if (branch == 'main') {
-//                                repository = "backend"
-//                            } else {
-//                                repository = "backend-dev"
-//                            }
+        stage('Create image') {
+            steps {
+                script {
+                    container('docker') {
+                            sh 'printenv'
+                            sh 'ls -l ./target'
+                        def tag = sh(returnStdout: true, script: "git tag --contains").trim()
+                        echo "${tag}"
+                            def shaSum = env.GIT_COMMIT
+                            def branch = env.GIT_BRANCH
+                            def shortSum = shaSum.substring(0,7)
+                            if (branch.contains("/")) {
+                                branch = branch.split("/")[1]
+                            }
+                            //def tag = "${branch}-${shortSum}"
+
+                            def repository = ""
+                            if (branch == 'main') {
+                                repository = "backend"
+                            } else {
+                                repository = "backend-dev"
+                            }
 //                            docker.withRegistry("https://${env.ECR}",'ecr:eu-central-1:JenkinsECR') {
 //                                def image = docker.build("${repository}:${tag}")
 //                                image.push()
 //                                image.push('latest')
 //                            }
-//                    }
-//                }
-//            }
-//
-//        }
+                    }
+                }
+            }
+
+        }
 //        stage('Deploy') {
 //            steps {
 //                script {
