@@ -82,7 +82,7 @@ pipeline {
         }
         stage('Test feature branch') {
             when {
-                branch 'f-01'
+                environment name: 'GIT_BRANCH', value: 'f-01'
             }
             steps {
                 sh 'printenv'
