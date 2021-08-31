@@ -55,6 +55,7 @@ pipeline {
                     container('docker') {
                             sh 'printenv'
                             sh 'ls -l ./target'
+                            echo "${TAG_NAME}"
                         def tag = sh(returnStdout: true, script: "git tag --contains").trim()
                         echo "${tag}"
                             def shaSum = env.GIT_COMMIT
