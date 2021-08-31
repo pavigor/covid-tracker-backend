@@ -8,15 +8,7 @@ pipeline {
         TAG_NAME = sh(returnStdout: true, script: "git tag --contains").trim()
     }
     stages {
-        stage('Trigger by tag') {
-            when {
-                buildingTag()
-            }
-            steps {
-                echo "Triggered by tag"
-                sh 'printenv'
-            }
-        }
+
         stage('Build') {
             steps {
                 container('maven') {
@@ -53,29 +45,30 @@ pipeline {
             steps {
                 script {
                     container('docker') {
-                            sh 'printenv'
-                            sh 'ls -l ./target'
-                            if ("${TAG_NAME}" != null) {
-                                echo "${TAG_NAME}"
-                            } else {
-                                echo "Tag doesn't exists"
-                            }
-                        def tag = sh(returnStdout: true, script: "git tag --contains").trim()
-                        echo "${tag}"
-                            def shaSum = env.GIT_COMMIT
-                            def branch = env.GIT_BRANCH
-                            def shortSum = shaSum.substring(0,7)
-                            if (branch.contains("/")) {
-                                branch = branch.split("/")[1]
-                            }
-                            //def tag = "${branch}-${shortSum}"
+                        sh 'printenv'
+                        sh 'ls -l ./target'
+                        if ("${TAG_NAME}" != null) {
+                            echo "${TAG_NAME}"
+                        } else {
+                            echo "Tag doesn't exists"
+                        }
+                        def shaSum = env.GIT_COMMIT
+                        def branch = env.GIT_BRANCH
+                        def shortSum = shaSum.substring(0,7)
+                        if (branch.contains("/")) {
+                            branch = branch.split("/")[1]
+                        }
+                        def tag = "${branch}-${shortSum}"
 
-                            def repository = ""
-                            if (branch == 'main') {
-                                repository = "backend"
-                            } else {
-                                repository = "backend-dev"
+                        def repository = ""
+                        if (branch == 'main') {
+                            repository = "backend"
+                            if ("${TAG_NAME}" == null) {
+                                echo "Deploy to dev"
                             }
+                        } else {
+                            repository = "backend-dev"
+                        }
 //                            docker.withRegistry("https://${env.ECR}",'ecr:eu-central-1:JenkinsECR') {
 //                                def image = docker.build("${repository}:${tag}")
 //                                image.push()
@@ -84,7 +77,15 @@ pipeline {
                     }
                 }
             }
-
+        }
+        stage('Deploy to production') {
+            when {
+                buildingTag()
+            }
+            steps {
+                echo "Deploy it to prod!"
+                sh 'printenv'
+            }
         }
 //        stage('Deploy') {
 //            steps {
