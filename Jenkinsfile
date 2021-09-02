@@ -80,7 +80,9 @@ pipeline {
         }
         stage('Test feature branch') {
             when {
-                environment name: 'GIT_BRANCH', value: 'f-01'
+                expression {
+                    env.GIT_BRANCH?.startsWith("f-")
+                }
             }
             steps {
                 sh 'printenv'
