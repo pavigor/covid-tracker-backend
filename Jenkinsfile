@@ -104,9 +104,7 @@ pipeline {
         }
         stage('Deploy to production') {
             when {
-                allOf {
-                    buildingTag() ; branch 'main'
-                }
+                buildingTag()
             }
             steps {
                 echo "Deploy it to prod!"
