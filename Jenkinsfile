@@ -89,7 +89,7 @@ pipeline {
                 sh 'printenv'
             }
         }
-        stage('Deploy to qa') {
+        stage('Deploy to QA') {
             when {
                 branch 'qa'
             }
@@ -110,28 +110,16 @@ pipeline {
                 buildingTag()
             }
             steps {
-                echo "Deploy it to prod!"
-                sh 'printenv'
+                script {
+                    container('jnlp') {
+                        sh 'sed -i "s/__NAMESPACE__/app-prod/g" cicd/deployment.yaml'
+                        sh 'sed -i "s/__IMAGE__/${APP_IMAGE}/g" cicd/deployment.yaml'
+                        sh 'sed -i "s/__ECR__/${ECR}/g" cicd/deployment.yaml'
+                        sh 'cat cicd/deployment.yaml'
+                        kubernetesDeploy(configs: "cicd/deployment.yaml", kubeconfigId: "k8s")
+                    }
+                }
             }
         }
-//       stage('Deploy') {
-//           steps {
-//               script {
-//                   container('jnlp') {
-//                           def branch = env.GIT_BRANCH
-//                           if (branch.contains("main")) {
-//                               sh 'sed -i "s/__NAMESPACE__/app-prod/g" cicd/deployment.yaml'
-//                               sh 'sed -i "s/__IMAGE__/backend/g" cicd/deployment.yaml'
-//                           } else {
-//                               sh 'sed -i "s/__NAMESPACE__/app-dev/g" cicd/deployment.yaml'
-//                               sh 'sed -i "s/__IMAGE__/backend-dev/g" cicd/deployment.yaml'
-//                           }
-//                           sh 'sed -i "s/__ECR__/${ECR}/g" cicd/deployment.yaml'
-//                           sh 'cat cicd/deployment.yaml'
-//                           kubernetesDeploy(configs: "cicd/deployment.yaml", kubeconfigId: "k8s")
-//                   }
-//               }
-//           }
-//       }
     }
 }
