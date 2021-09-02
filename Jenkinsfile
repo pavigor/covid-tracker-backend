@@ -12,6 +12,7 @@ pipeline {
         stage('Build') {
             steps {
                 container('maven') {
+                    sh 'ls -l /root/.m2/repository'
                     sh 'mvn clean package -Dmaven.test.failure.ignore=true -DskipTests=true'
                 }
             }
