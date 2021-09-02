@@ -65,7 +65,7 @@ pipeline {
                         if (branch == 'main') {
                             repository = "backend"
                             if (env.TAG_NAME) {
-                                tag = env.TAG_NAME
+                                imageTag = env.TAG_NAME
                             }
                         } else {
                             repository = "backend-dev"
