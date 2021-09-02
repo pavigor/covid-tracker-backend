@@ -26,56 +26,54 @@ pipeline {
 //                }
 //            }
 //        }
-//        stage('Unit Tests') {
-//           steps {
-//               container('docker') {
-//                   script {
-//                       docker.image('mysql:8').withRun('-e "MYSQL_ROOT_PASSWORD=pass_word" -e "MYSQL_DATABASE=covid_tracker" -p 3306:3306') { c ->
-//                           docker.image('mysql:8').inside("--link ${c.id}:db") {
-//                               sh 'while ! mysqladmin ping -hdb --silent; do sleep 1; done'
-//                           }
-//                           docker.image('maven:3-openjdk-11').inside("--link ${c.id}:db") {
-//                               sh 'mvn test -DskipTests=false -Dspring.jpa.hibernate.ddl-auto=create -Dspring.datasource.url=jdbc:mysql://db/covid_tracker -Dspring.datasource.username=root -Dspring.datasource.password=pass_word'
-//                           }
-//                       }
-//                   }
-//               }
-//           }
-//        }
+       stage('Unit Tests') {
+          steps {
+              container('docker') {
+                  script {
+                      docker.image('mysql:8').withRun('-e "MYSQL_ROOT_PASSWORD=pass_word" -e "MYSQL_DATABASE=covid_tracker" -p 3306:3306') { c ->
+                          docker.image('mysql:8').inside("--link ${c.id}:db") {
+                              sh 'while ! mysqladmin ping -hdb --silent; do sleep 1; done'
+                          }
+                          docker.image('maven:3-openjdk-11').inside("--link ${c.id}:db") {
+                              sh 'mvn test -DskipTests=false -Dspring.jpa.hibernate.ddl-auto=create -Dspring.datasource.url=jdbc:mysql://db/covid_tracker -Dspring.datasource.username=root -Dspring.datasource.password=pass_word'
+                          }
+                      }
+                  }
+              }
+          }
+       }
         stage('Create image') {
+            when {
+                    anyOf {
+                         environment name: 'GIT_BRANCH', value: 'main'; environment name: 'GIT_BRANCH', value: 'qa'
+                    }
+                }
             steps {
                 script {
                     container('docker') {
                         sh 'printenv'
-                        sh 'ls -l ./target'
-                        if (env.TAG_NAME) {
-                            echo "${env.TAG_NAME}"
-                        } else {
-                            echo "Tag doesn't exists"
-                        }
                         def shaSum = env.GIT_COMMIT
                         def branch = env.GIT_BRANCH
                         def shortSum = shaSum.substring(0,7)
                         if (branch.contains("/")) {
                             branch = branch.split("/")[1]
                         }
-                        def tag = "${branch}-${shortSum}"
+                        def imageTag = "${branch}-${shortSum}"
 
                         def repository = ""
                         if (branch == 'main') {
                             repository = "backend"
-                            if (!env.TAG_NAME) {
-                                echo "Deploy to dev"
+                            if (env.TAG_NAME) {
+                                tag = env.TAG_NAME
                             }
                         } else {
                             repository = "backend-dev"
                         }
-                        env.APP_IMAGE="${repository}:${tag}"
-//                            docker.withRegistry("https://${env.ECR}",'ecr:eu-central-1:JenkinsECR') {
-//                                def image = docker.build("${repository}:${tag}")
-//                                image.push()
-//                                image.push('latest')
-//                            }
+                        env.APP_IMAGE="${repository}:${imageTag}"
+                        docker.withRegistry("https://${env.ECR}",'ecr:eu-central-1:JenkinsECR') {
+                           def image = docker.build("${repository}:${imageTag}")
+                           image.push()
+                        }
                     }
                 }
             }
@@ -93,8 +91,16 @@ pipeline {
                 branch 'qa'
             }
             steps {
-                echo 'Deploy to qa'
-            }
+               script {
+                   container('jnlp') {
+                       sh 'sed -i "s/__NAMESPACE__/app-dev/g" cicd/deployment.yaml'
+                       sh 'sed -i "s/__IMAGE__/${env.APP_IMAGE}/g" cicd/deployment.yaml'
+                       sh 'sed -i "s/__ECR__/${ECR}/g" cicd/deployment.yaml'
+                       sh 'cat cicd/deployment.yaml'
+                       kubernetesDeploy(configs: "cicd/deployment.yaml", kubeconfigId: "k8s")
+                   }
+               }
+           }
         }
         stage('Deploy to production') {
             when {
@@ -107,24 +113,24 @@ pipeline {
                 sh 'printenv'
             }
         }
-//        stage('Deploy') {
-//            steps {
-//                script {
-//                    container('jnlp') {
-//                            def branch = env.GIT_BRANCH
-//                            if (branch.contains("main")) {
-//                                sh 'sed -i "s/__NAMESPACE__/app-prod/g" cicd/deployment.yaml'
-//                                sh 'sed -i "s/__IMAGE__/backend/g" cicd/deployment.yaml'
-//                            } else {
-//                                sh 'sed -i "s/__NAMESPACE__/app-dev/g" cicd/deployment.yaml'
-//                                sh 'sed -i "s/__IMAGE__/backend-dev/g" cicd/deployment.yaml'
-//                            }
-//                            sh 'sed -i "s/__ECR__/${ECR}/g" cicd/deployment.yaml'
-//                            sh 'cat cicd/deployment.yaml'
-//                            kubernetesDeploy(configs: "cicd/deployment.yaml", kubeconfigId: "k8s")
-//                    }
-//                }
-//            }
-//        }
+//       stage('Deploy') {
+//           steps {
+//               script {
+//                   container('jnlp') {
+//                           def branch = env.GIT_BRANCH
+//                           if (branch.contains("main")) {
+//                               sh 'sed -i "s/__NAMESPACE__/app-prod/g" cicd/deployment.yaml'
+//                               sh 'sed -i "s/__IMAGE__/backend/g" cicd/deployment.yaml'
+//                           } else {
+//                               sh 'sed -i "s/__NAMESPACE__/app-dev/g" cicd/deployment.yaml'
+//                               sh 'sed -i "s/__IMAGE__/backend-dev/g" cicd/deployment.yaml'
+//                           }
+//                           sh 'sed -i "s/__ECR__/${ECR}/g" cicd/deployment.yaml'
+//                           sh 'cat cicd/deployment.yaml'
+//                           kubernetesDeploy(configs: "cicd/deployment.yaml", kubeconfigId: "k8s")
+//                   }
+//               }
+//           }
+//       }
     }
 }
