@@ -21,7 +21,7 @@ spec:
         app: backend
     spec:
       containers:
-        - image: __ECR__/__IMAGE__:latest
+        - image: __ECR__/__IMAGE__
           name: backend
           resources:
             requests:

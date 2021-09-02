@@ -10,6 +10,9 @@ spec:
       image: maven:3-openjdk-11
       command: ["tail", "-f", "/dev/null"]
       imagePullPolicy: IfNotPresent
+      volumeMounts:
+        - name: maven-repo
+          mountPath: '/root/.m2/repository'
 
     - name: docker
       image: docker:19.03.13-dind
@@ -43,5 +46,8 @@ spec:
             secretKeyRef:
               name: aws-creds
               key: region
-
+  volumes:
+    - name: maven-repo
+      persistentVolumeClaim:
+        claimName: maven-repo
 
