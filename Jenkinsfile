@@ -12,6 +12,7 @@ pipeline {
         stage('Build') {
             steps {
                 container('maven') {
+                    sh 'ls -l /root/.m2/repository'
                     sh 'mvn clean package -Dmaven.test.failure.ignore=true -DskipTests=true'
                 }
             }
@@ -45,7 +46,7 @@ pipeline {
         stage('Create image') {
             when {
                     anyOf {
-                         environment name: 'GIT_BRANCH', value: 'main'; environment name: 'GIT_BRANCH', value: 'qa'
+                        buildingTag(); environment name: 'GIT_BRANCH', value: 'qa'
                     }
                 }
             steps {
@@ -64,7 +65,7 @@ pipeline {
                         if (branch == 'main') {
                             repository = "backend"
                             if (env.TAG_NAME) {
-                                tag = env.TAG_NAME
+                                imageTag = env.TAG_NAME
                             }
                         } else {
                             repository = "backend-dev"
@@ -80,7 +81,9 @@ pipeline {
         }
         stage('Test feature branch') {
             when {
-                environment name: 'GIT_BRANCH', value: 'f-01'
+                expression {
+                    env.GIT_BRANCH?.startsWith("f-")
+                }
             }
             steps {
                 sh 'printenv'
@@ -104,9 +107,7 @@ pipeline {
         }
         stage('Deploy to production') {
             when {
-                allOf {
-                    buildingTag() ; branch 'main'
-                }
+                buildingTag()
             }
             steps {
                 echo "Deploy it to prod!"
