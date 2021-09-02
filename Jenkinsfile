@@ -12,6 +12,7 @@ pipeline {
         stage('Build') {
             steps {
                 container('maven') {
+                    sh 'ls -l /root/.m2/repository'
                     sh 'mvn clean package -Dmaven.test.failure.ignore=true -DskipTests=true'
                 }
             }
@@ -64,7 +65,7 @@ pipeline {
                         if (branch == 'main') {
                             repository = "backend"
                             if (env.TAG_NAME) {
-                                tag = env.TAG_NAME
+                                imageTag = env.TAG_NAME
                             }
                         } else {
                             repository = "backend-dev"
@@ -80,13 +81,15 @@ pipeline {
         }
         stage('Test feature branch') {
             when {
-                environment name: 'GIT_BRANCH', value: 'f-01'
+                expression {
+                    env.GIT_BRANCH?.startsWith("f-")
+                }
             }
             steps {
                 sh 'printenv'
             }
         }
-        stage('Deploy to qa') {
+        stage('Deploy to QA') {
             when {
                 branch 'qa'
             }
@@ -107,28 +110,16 @@ pipeline {
                 buildingTag()
             }
             steps {
-                echo "Deploy it to prod!"
-                sh 'printenv'
+                script {
+                    container('jnlp') {
+                        sh 'sed -i "s/__NAMESPACE__/app-prod/g" cicd/deployment.yaml'
+                        sh 'sed -i "s/__IMAGE__/${APP_IMAGE}/g" cicd/deployment.yaml'
+                        sh 'sed -i "s/__ECR__/${ECR}/g" cicd/deployment.yaml'
+                        sh 'cat cicd/deployment.yaml'
+                        kubernetesDeploy(configs: "cicd/deployment.yaml", kubeconfigId: "k8s")
+                    }
+                }
             }
         }
-//       stage('Deploy') {
-//           steps {
-//               script {
-//                   container('jnlp') {
-//                           def branch = env.GIT_BRANCH
-//                           if (branch.contains("main")) {
-//                               sh 'sed -i "s/__NAMESPACE__/app-prod/g" cicd/deployment.yaml'
-//                               sh 'sed -i "s/__IMAGE__/backend/g" cicd/deployment.yaml'
-//                           } else {
-//                               sh 'sed -i "s/__NAMESPACE__/app-dev/g" cicd/deployment.yaml'
-//                               sh 'sed -i "s/__IMAGE__/backend-dev/g" cicd/deployment.yaml'
-//                           }
-//                           sh 'sed -i "s/__ECR__/${ECR}/g" cicd/deployment.yaml'
-//                           sh 'cat cicd/deployment.yaml'
-//                           kubernetesDeploy(configs: "cicd/deployment.yaml", kubeconfigId: "k8s")
-//                   }
-//               }
-//           }
-//       }
     }
 }
