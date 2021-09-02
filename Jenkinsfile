@@ -45,7 +45,7 @@ pipeline {
         stage('Create image') {
             when {
                     anyOf {
-                         environment name: 'GIT_BRANCH', value: 'main'; environment name: 'GIT_BRANCH', value: 'qa'
+                        buildingTag(); environment name: 'GIT_BRANCH', value: 'qa'
                     }
                 }
             steps {
